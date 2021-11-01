@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 
-import torch
-
 import getopt
 import math
-import numpy
 import os
-import PIL
-import PIL.Image
 import sys
 
+import matplotlib.pyplot as plt
+import numpy
+import PIL
+import PIL.Image
+import torch
+
+import visualize
+
 try:
-	from .correlation import correlation # the custom cost volume layer
+	from .correlation import correlation  # the custom cost volume layer
 except:
 	sys.path.insert(0, './correlation'); import correlation # you should consider upgrading python
 # end
@@ -27,8 +30,11 @@ torch.backends.cudnn.enabled = True # make sure to use cudnn for computational p
 ##########################################################
 
 arguments_strModel = 'default' # 'default', or 'chairs-things'
-arguments_strOne = './images/one.png'
-arguments_strTwo = './images/two.png'
+# arguments_strOne = './images/one.png'
+# arguments_strTwo = './images/two.png'
+idx = 129
+arguments_strOne = f'./images/microwaves/img{idx:06}.png'
+arguments_strTwo = f'./images/microwaves/img{idx + 1:06}.png'
 arguments_strOut = './out.flo'
 
 for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
@@ -290,8 +296,8 @@ def estimate(tenOne, tenTwo):
 	intWidth = tenOne.shape[2]
 	intHeight = tenOne.shape[1]
 
-	assert(intWidth == 1024) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-	assert(intHeight == 436) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+	# assert(intWidth == 1024) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+	# assert(intHeight == 436) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
 
 	tenPreprocessedOne = tenOne.cuda().view(1, 3, intHeight, intWidth)
 	tenPreprocessedTwo = tenTwo.cuda().view(1, 3, intHeight, intWidth)
@@ -313,13 +319,28 @@ def estimate(tenOne, tenTwo):
 ##########################################################
 
 if __name__ == '__main__':
-	tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strOne))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
-	tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strTwo))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+	imOne = numpy.array(PIL.Image.open(arguments_strOne))[:, :, :3]
+	imTwo = numpy.array(PIL.Image.open(arguments_strTwo))[:, :, :3]
+	tenOne = torch.FloatTensor(numpy.ascontiguousarray(imOne[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+	tenTwo = torch.FloatTensor(numpy.ascontiguousarray(imTwo[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
 	tenOutput = estimate(tenOne, tenTwo)
 
 	objOutput = open(arguments_strOut, 'wb')
 
+	res = visualize.flow_to_color(tenOutput.numpy().transpose([1, 2, 0]))
+	# PIL.Image.fromarray(res).save('res.png')
+	plt.subplot(3, 1, 1)
+	plt.imshow(imOne)
+	plt.axis('off')
+	plt.subplot(3, 1, 2)
+	plt.imshow(imTwo)
+	plt.axis('off')
+	plt.subplot(3, 1, 3)
+	plt.imshow(res)
+	plt.axis('off')
+	plt.show()
+	
 	numpy.array([ 80, 73, 69, 72 ], numpy.uint8).tofile(objOutput)
 	numpy.array([ tenOutput.shape[2], tenOutput.shape[1] ], numpy.int32).tofile(objOutput)
 	numpy.array(tenOutput.numpy().transpose(1, 2, 0), numpy.float32).tofile(objOutput)
