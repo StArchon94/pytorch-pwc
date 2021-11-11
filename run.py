@@ -37,13 +37,6 @@ arguments_strOne = f'./images/microwaves/img{idx:06}.png'
 arguments_strTwo = f'./images/microwaves/img{idx + 1:06}.png'
 arguments_strOut = './out.flo'
 
-for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
-	if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use
-	if strOption == '--one' and strArgument != '': arguments_strOne = strArgument # path to the first frame
-	if strOption == '--two' and strArgument != '': arguments_strTwo = strArgument # path to the second frame
-	if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
-# end
-
 ##########################################################
 
 backwarp_tenGrid = {}
@@ -313,7 +306,7 @@ def estimate(tenOne, tenTwo):
 	tenFlow[:, 0, :, :] *= float(intWidth) / float(intPreprocessedWidth)
 	tenFlow[:, 1, :, :] *= float(intHeight) / float(intPreprocessedHeight)
 
-	return tenFlow[0, :, :, :].cpu()
+	return tenFlow[0, :, :, :]
 # end
 
 ##########################################################
@@ -324,7 +317,7 @@ if __name__ == '__main__':
 	tenOne = torch.FloatTensor(numpy.ascontiguousarray(imOne[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 	tenTwo = torch.FloatTensor(numpy.ascontiguousarray(imTwo[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
-	tenOutput = estimate(tenOne, tenTwo)
+	tenOutput = estimate(tenOne, tenTwo).cpu()
 
 	objOutput = open(arguments_strOut, 'wb')
 
